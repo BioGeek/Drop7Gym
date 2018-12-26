@@ -2,6 +2,7 @@ import numpy as np
 from .grid import Grid
 from .stats import Stats
 import gym
+from gym import spaces
 
 
 class Drop7Env(gym.Env):
@@ -14,6 +15,22 @@ class Drop7Env(gym.Env):
         self.stats = Stats()
         self.grid = Grid(self.stats)
         self.reset()
+
+        # openai gym setup
+        # Agent can drop the next disc into columns 0 - grid_size
+        self.action_space = spaces.Discrete(self.grid_size)
+
+        # Agent sees a tuple:
+        # 1. the next ball to be dropped
+        # 2. the grid as a box
+        self.observation_space = spaces.Tuple(
+            spaces.Discrete(self.grid_size),
+            spaces.Box(low=-2, high=self.grid_size, dtype=np.float32)
+        )
+
+        # Store what the agent tried
+        self.curr_episode = -1
+        self.action_episode_memory = []
 
     def render(self, mode='human'):
         self.grid.show_grid()
