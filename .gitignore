@@ -8,6 +8,7 @@ __pycache__/
 
 # pycharm
 .idea/
+.DS_Store
 
 # Distribution / packaging
 .Python
