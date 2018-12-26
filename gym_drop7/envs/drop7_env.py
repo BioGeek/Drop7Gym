@@ -9,17 +9,17 @@ class Drop7Env(gym.Env):
     Class Drop7 is the actual game.
     """
 
-    def render(self, mode='human'):
-        pass
-
-    def step(self, action):
-        pass
-
     def __init__(self, grid_size=7):
         self.grid_size = grid_size
         self.stats = Stats()
         self.grid = Grid(self.stats)
         self.reset()
+
+    def render(self, mode='human'):
+        self.grid.show_grid()
+
+    def step(self, action):
+        pass
 
     def _update_state(self, action):
         """
