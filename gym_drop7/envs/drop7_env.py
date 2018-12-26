@@ -14,7 +14,6 @@ class Drop7Env(gym.Env):
         self.grid_size = grid_size
         self.stats = Stats()
         self.grid = Grid(self.stats)
-        self.reset()
 
         # openai gym setup
         # Agent can drop the next disc into columns 0 - grid_size
@@ -23,12 +22,13 @@ class Drop7Env(gym.Env):
         # Agent sees a tuple:
         # 1. the next ball to be dropped
         # 2. the grid as a box
-        self.observation_space = spaces.Tuple(
+        self.observation_space = spaces.Tuple((
             spaces.Discrete(self.grid_size),
-            spaces.Box(low=-2, high=self.grid_size, dtype=np.float32)
-        )
+            spaces.Box(low=-2, high=self.grid_size, shape=(self.grid_size, self.grid_size), dtype=np.float32)
+        ))
 
         # Store what the agent tried
+        self.curr_step = -1
         self.curr_episode = -1
         self.action_episode_memory = []
 
@@ -36,7 +36,50 @@ class Drop7Env(gym.Env):
         self.grid.show_grid()
 
     def step(self, action):
-        pass
+        """
+        The agent takes a step in the environment.
+        Parameters
+        ----------
+        action : int
+        Returns
+        -------
+        ob, reward, episode_over, info : tuple
+            ob (object) :
+                an environment-specific object representing your observation of
+                the environment.
+            reward (float) :
+                amount of reward achieved by the previous action. The scale
+                varies between environments, but the goal is always to increase
+                your total reward.
+            episode_over (bool) :
+                whether it's time to reset the environment again. Most (but not
+                all) tasks are divided up into well-defined episodes, and done
+                being True indicates the episode has terminated. (For example,
+                perhaps the pole tipped too far, or you lost your last life.)
+            info (dict) :
+                 diagnostic information useful for debugging. It can sometimes
+                 be useful for learning (for example, it might contain the raw
+                 probabilities behind the environment's last state change).
+                 However, official evaluations of your agent are not allowed to
+                 use this for learning.
+        """
+        # special_reward is used for level_up bonus
+        game_over, need_another_col, special_reward = self.grid.drop_ball_in_column(self.grid.next_ball, action)
+
+        if game_over:
+            raise RuntimeError("Episode is done")
+
+        self.curr_step += 1
+
+        reward = self.grid.update_grid() + special_reward
+        ob = self.get_state()
+
+        return ob, reward, game_over, {}
+
+    def get_state(self):
+        next_ball = self.grid.next_ball
+        return next_ball, self.grid.grid_as_array()
+
 
     def _update_state(self, action):
         """
@@ -58,6 +101,18 @@ class Drop7Env(gym.Env):
 
         assert len(out.shape) == 2
         self.state = out
+
+    def reset(self):
+        self.curr_step = -1
+        self.curr_episode += 1
+
+        self.stats = Stats()
+        self.grid = Grid(self.stats)
+
+        return self.get_state()
+        # n = np.random.randint(0, self.grid_size - 1, size=1)
+        # m = np.random.randint(1, self.grid_size - 2, size=1)
+        # self.state = np.asarray([0, n, m])[np.newaxis]
 
     def _draw_state(self):
         im_size = (self.grid_size,) * 2
@@ -93,13 +148,6 @@ class Drop7Env(gym.Env):
         game_over = self._is_over()
         return self.observe(), reward, game_over
 
-    def reset(self):
-        n = np.random.randint(0, self.grid_size - 1, size=1)
-        m = np.random.randint(1, self.grid_size - 2, size=1)
-        self.state = np.asarray([0, n, m])[np.newaxis]
-
-    def get_state(self):
-        return self.state
 
 if __name__ == '__main__':
     game = Drop7Env()

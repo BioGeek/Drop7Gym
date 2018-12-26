@@ -8,7 +8,7 @@ class Stats(object):
     """
 
     # chain points -> e.g. making a chain reaction of 2 results in 39 points * explosions of blocks
-    chain = {1: 7, 2: 39, 3: 109, 4: 224, 5: 391, 6: 617, 7: 907, 8: 1267, 9: 1701, 10: 2207}
+
 
     def __init__(self):
         self.reset(cfg._outfile)
@@ -27,13 +27,6 @@ class Stats(object):
 
     def incr_level_count(self):
         self.levelup_count += 1
-
-    def award_points(self, chain_level, explosions):
-        if chain_level > 10:
-            chain_level = 10
-        self.points += self.chain[chain_level] * explosions
-        self.ptslist.append(self.chain[chain_level] * explosions)
-        self.explist.append(explosions)
 
     def update_nz(self, numnz):
         self.nz.append(numnz)

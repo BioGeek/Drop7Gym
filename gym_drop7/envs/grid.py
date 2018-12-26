@@ -9,6 +9,7 @@ import time
 
 class Grid(object):
     last_frame_time = 0
+    chain = {1: 7, 2: 39, 3: 109, 4: 224, 5: 391, 6: 617, 7: 907, 8: 1267, 9: 1701, 10: 2207}
 
     def __init__(self, stats, demo=False, grid_size=7):
         self.grid_size = grid_size
@@ -17,6 +18,7 @@ class Grid(object):
         self.grid = np.zeros((grid_size, grid_size), dtype=np.int)
         self.generate_init_grid(self.grid_size)
         self.next_ball = generate_next_ball(self.grid_size)
+        self.step_count = 0
         self.reset()
 
     def generate_init_grid(self, _size):
@@ -41,6 +43,18 @@ class Grid(object):
         self.update_grid()
         # s.reset(cfg._outfile)
 
+    def grid_as_array(self):
+        return np.array(self.grid)
+
+    def award_points(self, chain_level, explosions):
+        points = 0
+        if chain_level > 10:
+            chain_level = 10
+        points += self.chain[chain_level] * explosions
+        return points
+        # self.ptslist.append(self.chain[chain_level] * explosions)
+        # self.explist.append(explosions)
+
     def update_grid(self):
         """
         Main function to update the grid
@@ -48,13 +62,48 @@ class Grid(object):
         """
         gravity_done, explosions_done = 0, 0
         chain_level = 0
+        reward = 0
         while not (gravity_done and explosions_done):
             chain_level += 1
-            explosions_done = self.apply_explosions_to_grid(chain_level)
+            explosions_done, reward_temp = self.apply_explosions_to_grid(chain_level)
+            reward += reward_temp
             gravity_done = self.apply_gravity_to_grid()
             # print("In update grid", explosions_done, gravity_done)
 
         self.next_ball = generate_next_ball(self.grid_size)
+        return reward
+
+    def apply_explosions_to_grid(self, chain_level):
+        original = self.grid.copy()  # need this for calculating points
+        reward = 0
+        # explosions = 0
+        # for each row, calculate explosions (but don't execute them)
+        # for each col, caluclate explosions (but don't execute them)
+        row_mask, col_mask = grid_of_ones(cfg._SIZE), grid_of_ones(cfg._SIZE)
+        for i in range(cfg._SIZE):
+            _, _, row_mask[i, :] = inplace_explosions(self.grid[i, :])
+            _, _, col_mask[:, i] = inplace_explosions(self.grid[:, i])
+
+        # Executing all the explosions at once
+        for i in range(cfg._SIZE):
+            self.grid[i, :] = self.grid[i, :] * row_mask[i, :]
+            self.grid[:, i] = self.grid[:, i] * col_mask[:, i]
+
+        # Explosions is the NUMBER of BALLS that EXPLODE at a give grid configuration
+        explosions = np.count_nonzero(original != self.grid)
+        explosions_done = (explosions == 0)
+        if chain_level >= 1:
+            print("Chain Level:", chain_level, file=open(cfg._outfile, "a"))
+            reward = self.award_points(chain_level, explosions)
+        return explosions_done, reward
+
+    def apply_gravity_to_grid(self):
+        original = self.grid.copy()
+        for i in range(cfg._SIZE):
+            _, _, self.grid[:, i] = apply_gravity_to_column(self.grid[:, i])
+
+        updated = self.grid.copy()
+        return np.array_equal(updated, original)
 
     def reset(self):
         pass
@@ -114,6 +163,15 @@ class Grid(object):
         If column is full, return illegal flag
         If grid is full game_over
         """
+
+        self.step_count += 1
+        special_reward = 0
+        if self.step_count % cfg._BALLS_TO_LEVELUP == 0:
+            game_over = self.level_up()
+            special_reward = 7000
+            if game_over:
+                return True, False, 0
+
         game_over = self.is_grid_full()
         gcol = self.grid[:, col]
         slot = np.where(gcol == 0)[0]
@@ -128,66 +186,29 @@ class Grid(object):
         if game_over:
             need_another_col = False
 
-        return game_over, need_another_col
+        return game_over, need_another_col, special_reward
 
-    def apply_explosions_to_grid(self, chain_level):
-
-        original = self.grid.copy()  # need this for calculating points
-        # explosions = 0
-
-        # for each row, calculate explosions (but don't execute them)
-        # for each col, caluclate explosions (but don't execute them)
-        row_mask, col_mask = grid_of_ones(cfg._SIZE), grid_of_ones(cfg._SIZE)
-        for i in range(cfg._SIZE):
-            _, _, row_mask[i, :] = inplace_explosions(self.grid[i, :])
-            _, _, col_mask[:, i] = inplace_explosions(self.grid[:, i])
-
-        # Executing all the explosions at once
-        for i in range(cfg._SIZE):
-            self.grid[i, :] = self.grid[i, :] * row_mask[i, :]
-            self.grid[:, i] = self.grid[:, i] * col_mask[:, i]
-
-        # Explosions is the NUMBER of BALLS that EXPLODE at a give grid configuration
-        explosions = np.count_nonzero(original != self.grid)
-        # print("Explosions", explosions)
-        # if explosions == 2:
-        #    print(original, grid)
-        explosions_done = (explosions == 0)
-        if chain_level > 1:
-            print("Chain Level:", chain_level, file=open(cfg._outfile, "a"))
-            self.stats.award_points(chain_level, explosions)
-
-        return explosions_done
-
-    def apply_gravity_to_grid(self):
-        original = self.grid.copy()
-        for i in range(cfg._SIZE):
-            _, _, self.grid[:, i] = apply_gravity_to_column(self.grid[:, i])
-
-        updated = self.grid.copy()
-        return np.array_equal(updated, original)
-
-    def level_up(self, grid):
+    def level_up(self):
         """
         Add a row of balls to the bottom of the grid.
         If the top row has any ball, Game Over
 
         Note that when the balls are first surfaced, they are all -2. (meaning doubly hidden)
-        The first explosion exposes them onnce to -1.
+        The first explosion exposes them once to -1.
         Second neigboring explosion makes them the Original value.
         """
         # if top row has something, return grid and gameover
         if top_row_occupied(self.grid):
-            return grid, 1  # game over
+            return True  # game over
 
-        original = grid.copy()
+        original = self.grid.copy()
         for i in range(cfg._SIZE - 1):
-            grid[i, :] = original[i + 1, :]  # move the row up
+            self.grid[i, :] = original[i + 1, :]  # move the row up
 
-        grid[-1, :] = generate_random_row(cfg._SIZE)
-        grid[-1, :] = generate_fixed_row(cfg._SIZE, -2)
+        self.grid[-1, :] = generate_random_row(cfg._SIZE)
+        self.grid[-1, :] = generate_fixed_row(cfg._SIZE, -2)
 
-        return grid, 0  # game is not over
+        return False  # game is not over
 
     def print_game_over(self, s):
         print("GAME OVER")

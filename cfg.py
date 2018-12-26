@@ -4,7 +4,7 @@ _SIZE = 7
 _FRACTION = (0.5, 0.7)
 HORIZ, VERT = 0, 1
 _printfreq = 30
-_BALLS_TO_LEVELUP = 20
+_BALLS_TO_LEVELUP = 30
 _outfile = "gamestats.txt"
 
 
