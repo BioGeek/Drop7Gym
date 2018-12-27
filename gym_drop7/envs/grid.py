@@ -11,29 +11,33 @@ class Grid(object):
     last_frame_time = 0
     chain = {1: 7, 2: 39, 3: 109, 4: 224, 5: 391, 6: 617, 7: 907, 8: 1267, 9: 1701, 10: 2207}
 
-    def __init__(self, stats, demo=False, grid_size=7):
+    def __init__(self, stats, mode = "classic", demo=False, grid_size=7):
         self.grid_size = grid_size
         self.stats = stats
 
         self.grid = np.zeros((grid_size, grid_size), dtype=np.int)
-        self.generate_init_grid(self.grid_size)
+        self.generate_init_grid(self.grid_size, mode)
         self.next_ball = generate_next_ball(self.grid_size)
         self.step_count = 0
         self.reset()
 
-    def generate_init_grid(self, _size):
+    def generate_init_grid(self, _size, mode):
         """
         drop-7 starting grid with a few rules.
 
         Explode as needed (vertical)
         Explode as needed (horizontal)
         """
-
-        for x in np.nditer(self.grid, op_flags=['readwrite']):
-            # generate a U(0,1). If it is less than _fraction, then get a random integer from 1..7
-            if random.random() <= random.uniform(cfg._FRACTION[0], cfg._FRACTION[1]):
-                x[...] = random.randint(1, _size)  # ellipsis will modify the right element
-
+        
+        if mode == "classic":
+            for x in np.nditer(self.grid, op_flags=['readwrite']):
+                # generate a U(0,1). If it is less than _fraction, then get a random integer from 1..7
+                if random.random() <= random.uniform(cfg._FRACTION[0], cfg._FRACTION[1]):
+                    x[...] = random.randint(1, _size)  # ellipsis will modify the right element
+        
+        elif mode == "sequence":
+            self.grid[-1, :] = generate_fixed_row(cfg._SIZE, -2)
+        
         # apply gravity to each column
         for col_num in range(self.grid.shape[1]):
             _, _, new = apply_gravity_to_column(self.grid[:, col_num])

@@ -10,10 +10,11 @@ class Drop7Env(gym.Env):
     Class Drop7 is the actual game.
     """
 
-    def __init__(self, grid_size=7):
+    def __init__(self, mode="classic", grid_size=7):
         self.grid_size = grid_size
+        self.mode = mode
         self.stats = Stats()
-        self.grid = Grid(self.stats)
+        self.grid = Grid(self.stats, mode)
 
         # openai gym setup
         # Agent can drop the next disc into columns 0 - grid_size
@@ -107,7 +108,7 @@ class Drop7Env(gym.Env):
         self.curr_episode += 1
 
         self.stats = Stats()
-        self.grid = Grid(self.stats)
+        self.grid = Grid(self.stats, self.mode)
 
         return self.get_state()
         # n = np.random.randint(0, self.grid_size - 1, size=1)
