@@ -115,14 +115,6 @@ class Drop7Env(gym.Env):
         # m = np.random.randint(1, self.grid_size - 2, size=1)
         # self.state = np.asarray([0, n, m])[np.newaxis]
 
-    def _draw_state(self):
-        im_size = (self.grid_size,) * 2
-        state = self.state[0]
-        canvas = np.zeros(im_size)
-        canvas[state[0], state[1]] = 1  # draw fruit
-        canvas[-1, state[2] - 1:state[2] + 2] = 1  # draw basket
-        return canvas
-
     def _get_reward(self):
         fruit_row, fruit_col, basket = self.state[0]
         if fruit_row == self.grid_size - 1:
@@ -138,10 +130,6 @@ class Drop7Env(gym.Env):
             return True
         else:
             return False
-
-    def observe(self):
-        canvas = self._draw_state()
-        return canvas.reshape((1, -1))
 
     def act(self, action):
         self._update_state(action)
