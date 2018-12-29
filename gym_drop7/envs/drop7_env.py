@@ -70,7 +70,6 @@ class Drop7Env(gym.Env):
         ob = self.get_state()
         
         if game_over:
-            # raise RuntimeError("Episode is done")
             reward = 0.0
         else:
             self.curr_step += 1
@@ -82,27 +81,6 @@ class Drop7Env(gym.Env):
         next_ball = self.grid.next_ball
         return next_ball, self.grid.grid_as_array()
 
-    def _update_state(self, action):
-        """
-        Input: action and states
-        Output: new states and reward
-        """
-        state = self.state
-        if action == 0:  # left
-            action = -1
-        elif action == 1:  # stay
-            action = 0
-        else:
-            action = 1  # right
-        f0, f1, basket = state[0]
-        new_basket = min(max(1, basket + action), self.grid_size - 1)
-        f0 += 1
-        out = np.asarray([f0, f1, new_basket])
-        out = out[np.newaxis]
-
-        assert len(out.shape) == 2
-        self.state = out
-
     def reset(self):
         self.curr_step = -1
         self.curr_episode += 1
@@ -111,31 +89,6 @@ class Drop7Env(gym.Env):
         self.grid = Grid(self.stats, self.mode)
 
         return self.get_state()
-        # n = np.random.randint(0, self.grid_size - 1, size=1)
-        # m = np.random.randint(1, self.grid_size - 2, size=1)
-        # self.state = np.asarray([0, n, m])[np.newaxis]
-
-    def _get_reward(self):
-        fruit_row, fruit_col, basket = self.state[0]
-        if fruit_row == self.grid_size - 1:
-            if abs(fruit_col - basket) <= 1:
-                return 1
-            else:
-                return -1
-        else:
-            return 0
-
-    def _is_over(self):
-        if self.state[0, 0] == self.grid_size - 1:
-            return True
-        else:
-            return False
-
-    def act(self, action):
-        self._update_state(action)
-        reward = self._get_reward()
-        game_over = self._is_over()
-        return self.observe(), reward, game_over
 
 
 if __name__ == '__main__':
