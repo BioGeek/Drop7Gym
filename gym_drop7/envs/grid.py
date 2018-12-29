@@ -19,7 +19,6 @@ class Grid(object):
         self.generate_init_grid(self.grid_size, mode)
         self.next_ball = generate_next_ball(self.grid_size)
         self.step_count = 0
-        self.reset()
 
     def generate_init_grid(self, _size, mode):
         """
@@ -109,29 +108,12 @@ class Grid(object):
         updated = self.grid.copy()
         return np.array_equal(updated, original)
 
-    def reset(self):
-        pass
-
     def row(self, rnum, _string):
         self.grid[cfg._SIZE - 1 - rnum, :] = list(_string)
 
     def show_grid(self):
-        try:
-            self.display_screen2()
-        except KeyboardInterrupt:
-            # break
-            return 1
-            # sys.exit(0)
-
-        return 0
-
-    # last frame time keeps track of which frame we are at
-
-    def display_screen2(self):
         # Function used to render the game screen
         # Get the last rendered frame
-
-        # global last_frame_time
 
         # make a color map of fixed colors
         cmap = colors.ListedColormap(
@@ -147,15 +129,6 @@ class Grid(object):
 
         plt.imshow(self.grid.reshape((cfg._SIZE,) * 2),
                    interpolation='none', cmap=cmap, norm=norm)
-
-        # And display the rendering
-        # display.display(plt.gcf()) #get current figure and display it to any front-end
-
-        # Clear whatever we rendered before
-        # display.clear_output(wait=True) #Wait to clear the output until new output is available to replace it.
-
-        # Update the last frame time
-        self.last_frame_time = set_max_fps(self.last_frame_time, 0.5)
 
     def is_grid_full(self):
         nz = np.count_nonzero(self.grid)
