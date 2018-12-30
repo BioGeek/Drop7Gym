@@ -69,7 +69,7 @@ class Drop7Env(gym.Env):
 
         if game_over:
             reward = 0.0
-            return self.grid.grid_of_zeros(self.grid_size), reward, game_over, {}
+            return (self.grid.next_ball, self.grid.grid_of_zeros(self.grid_size)), reward, game_over, {}
 
         else:
             self.curr_step += 1
