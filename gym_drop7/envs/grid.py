@@ -76,6 +76,36 @@ class Grid(object):
         self.next_ball = generate_next_ball(self.grid_size)
         return reward
 
+    def upgrade_neighboring_undiscovered_blocks(self, row_i, col_i):
+        coordinates = [(row_i + 1, col_i), (row_i - 1, col_i), (row_i, col_i + 1), (row_i, col_i - 1)]
+        #print("explosion at" + str(row_i) + " " + str(col_i))
+        for coord in coordinates:
+            if 0 <= coord[0] < self.grid_size and 0 <= coord[1] < self.grid_size:
+
+                if self.grid[coord[0], coord[1]] == -2:
+                    self.grid[coord[0], coord[1]] += 1
+                elif self.grid[coord[0], coord[1]] == -1:
+                    self.grid[coord[0], coord[1]] = generate_next_ball(self.grid_size)
+
+        '''
+        
+            if coord[0]-1 > 0:
+                if self.grid[coord[0] - 1, coord[1]] == -2:
+                    self.grid[coord[0] - 1, coord[1]] += 1
+                if self.grid[coord[0] - 1, coord[1]] == -1:
+                    self.grid[coord[0] - 1, coord[1]] = generate_next_ball(self.grid_size)
+            if coord[1] + 1 < self.grid_size:
+                if self.grid[coord[0], coord[1]+1] == -2:
+                    self.grid[coord[0], coord[1]+1] += 1
+                if self.grid[coord[0], coord[1]+1] == -1:
+                    self.grid[coord[0], coord[1]+1] = generate_next_ball(self.grid_size)
+            if coord[1] - 1 > 0:
+                if self.grid[coord[0], coord[1]-1] == -2:
+                    self.grid[coord[0], coord[1]-1] += 1
+                if self.grid[coord[0], coord[1]-1] == -1:
+                    self.grid[coord[0], coord[1]-1] = generate_next_ball(self.grid_size)
+                    '''
+
     def apply_explosions_to_grid(self, chain_level):
         original = self.grid.copy()  # need this for calculating points
         reward = 0
@@ -92,11 +122,36 @@ class Grid(object):
             self.grid[i, :] = self.grid[i, :] * row_mask[i, :]
             self.grid[:, i] = self.grid[:, i] * col_mask[:, i]
 
+        # upgrading invisible blocks
+        cor_i = 0
+        cor_j = 0
+        explosion_matrix = np.multiply(row_mask, col_mask)
+        for ix, iy in np.ndindex(explosion_matrix.shape):
+
+            if explosion_matrix[ix, iy] == 0:
+                #print(np.array(explosion_matrix))
+                self.upgrade_neighboring_undiscovered_blocks(ix, iy)
+        '''
+        
+        for i in row_mask[i, :]:
+            #print(i)
+            for j in col_mask[:, i]:
+                #print("coordinates: i "+ str(cor_i) + " j: " + str(cor_j))
+                #print("on grid: " + str(self.grid[i, j]))
+                #if field is blanked out, due to explosion -> upgrade neighboring -2 and -1
+                if i == 0 or j == 0:
+                    print("explosion on " + str(cor_i) + " " + str(cor_j))
+                    self.upgrade_neighboring_undiscovered_blocks(cor_i, cor_j)
+
+                cor_j += 1
+            cor_i += 1
+            cor_j = 0
+'''
         # Explosions is the NUMBER of BALLS that EXPLODE at a give grid configuration
         explosions = np.count_nonzero(original != self.grid)
         explosions_done = (explosions == 0)
         if chain_level >= 1:
-            print("Chain Level:", chain_level, file=open(cfg._outfile, "a"))
+            # print("Chain Level:", chain_level, file=open(cfg._outfile, "a"))
             reward = self.award_points(chain_level, explosions)
         return explosions_done, reward
 
@@ -187,6 +242,9 @@ class Grid(object):
 
         return False  # game is not over
 
+    def grid_of_zeros(self, size=cfg._SIZE):
+        return np.zeros((size, size), dtype=np.int)
+
     def print_game_over(self, s):
         print("GAME OVER")
         print(self.grid)
@@ -212,11 +270,18 @@ def top_row_occupied(grid_num):
 
 
 def blank_out(_num, vec):
-    return [0 if x == _num else x for x in vec]
+    """
+    Handling changes in exploding row / vec
+    :param _num:
+    :param vec:
+    :return:
+    """
+    over_zero_explosions = [0 if x == _num else x for x in vec]
+    return over_zero_explosions
 
 
 def mask(vec):
-    return [x > 0 for x in vec]
+    return [x != 0 for x in vec]
 
 
 def current_time_in_mill():
@@ -229,10 +294,6 @@ def set_max_fps(last_frame_time, _fps=1.0):
     if remaining_sleep_time > 0:
         time.sleep(remaining_sleep_time)
     return current_milli_time
-
-
-def grid_of_zeros(size=cfg._SIZE):
-    return np.zeros((size, size), dtype=np.int)
 
 
 def grid_of_ones(size=cfg._SIZE):
@@ -256,7 +317,6 @@ def get_mask_lengths(_vec):
 def inplace_explosions(vec):
 
     exp_occurred = False
-
     original = [x for x in vec]  # manually creating a deepcopy
     updated_vec = [x for x in vec]  # manually creating a deepcopy
 

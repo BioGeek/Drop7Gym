@@ -66,14 +66,15 @@ class Drop7Env(gym.Env):
         """
         # special_reward is used for level_up bonus
         game_over, need_another_col, special_reward = self.grid.drop_ball_in_column(self.grid.next_ball, action)
-        
-        ob = self.get_state()
-        
+
         if game_over:
             reward = 0.0
+            return self.grid.grid_of_zeros(self.grid_size), reward, game_over, {}
+
         else:
             self.curr_step += 1
             reward = self.grid.update_grid() + special_reward
+            ob = self.get_state()
 
         return ob, reward, game_over, {}
 
@@ -89,7 +90,6 @@ class Drop7Env(gym.Env):
         self.grid = Grid(self.stats, self.mode)
 
         return self.get_state()
-
 
 if __name__ == '__main__':
     game = Drop7Env()
