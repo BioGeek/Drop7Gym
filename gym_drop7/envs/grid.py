@@ -15,7 +15,7 @@ class Grid(object):
         self.grid_size = grid_size
         self.stats = stats
 
-        self.grid = np.zeros((grid_size, grid_size), dtype=np.int)
+        self.grid = np.zeros((grid_size, grid_size), dtype=int)
         self.generate_init_grid(self.grid_size, mode)
         self.next_ball = generate_next_ball(self.grid_size)
         self.step_count = 0
@@ -243,7 +243,7 @@ class Grid(object):
         return False  # game is not over
 
     def grid_of_zeros(self, size=cfg._SIZE):
-        return np.zeros((size, size), dtype=np.int)
+        return np.zeros((size, size), dtype=int)
 
     def print_game_over(self, s):
         print("GAME OVER")
@@ -297,7 +297,7 @@ def set_max_fps(last_frame_time, _fps=1.0):
 
 
 def grid_of_ones(size=cfg._SIZE):
-    return np.ones((size, size), dtype=np.int)
+    return np.ones((size, size), dtype=int)
 
 
 def get_mask_lengths(_vec):
